@@ -59,7 +59,7 @@ fn record_reader_10k_collect<M: Measurement>(measure_name: &str, c: &mut Criteri
               }
             ",).unwrap();
             let iter = parquet_reader.get_row_iter(Some(projection)).unwrap();
-            iter.collect::<Vec<_>>();
+            let _ = iter.collect::<Vec<_>>();
         })
     });
 }
