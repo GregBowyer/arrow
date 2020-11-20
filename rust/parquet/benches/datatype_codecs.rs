@@ -110,7 +110,7 @@ fn setup_decoder_bench<M, T>(
         format!("{}_decoder_{:?}::{}", dname, phys_type, mname).to_lowercase();
     let mut group = c.benchmark_group(bench_name);
 
-    let (bytes, values) = T::gen_values(num_values);
+    let (_, values) = T::gen_values(num_values);
     let mem_tracker = Rc::new(MemTracker::new());
     let col_desc = Rc::new(col_desc(0, T::get_physical_type()));
     let mut encoder = make_encoder(col_desc, mem_tracker);
@@ -125,7 +125,7 @@ fn setup_decoder_bench<M, T>(
         let mut output = vec![T::T::default(); batch_size];
         let bench_id = BenchmarkId::from_parameter(batch_size);
 
-        group.throughput(Throughput::Bytes(bytes as u64));
+        group.throughput(Throughput::Bytes((std::mem::size_of::<T::T>() * batch_size) as u64));
         group.bench_with_input(bench_id, &batch_size, |b, &batch_size| {
             b.iter(|| {
                 bench_decoder::<T>(
@@ -158,7 +158,7 @@ fn setup_decoder_dict_bench<M, T>(
     let bench_name = format!("dict_decoder_{:?}::{}", phys_type, mname).to_lowercase();
     let mut group = c.benchmark_group(bench_name);
 
-    let (bytes, values) = T::gen_values(num_values);
+    let (_, values) = T::gen_values(num_values);
     let mem_tracker = Rc::new(MemTracker::new());
     let col_desc = Rc::new(col_desc(0, T::get_physical_type()));
     let mut encoder = DictEncoder::<T>::new(col_desc, mem_tracker);
@@ -181,7 +181,7 @@ fn setup_decoder_dict_bench<M, T>(
         let mut output = vec![T::T::default(); batch_size];
         let bench_id = BenchmarkId::from_parameter(batch_size);
 
-        group.throughput(Throughput::Bytes(bytes as u64));
+        group.throughput(Throughput::Bytes((std::mem::size_of::<T::T>() * batch_size) as u64));
         group.bench_with_input(bench_id, &batch_size, |b, &batch_size| {
             b.iter(|| {
                 decoder

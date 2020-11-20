@@ -66,11 +66,10 @@ impl Measurement for Alloc {
     type Value = usize;
 
     fn start(&self) -> Self::Intermediate {
-        self.region
-            .borrow_mut()
-            .reset();
+        let stats = self.region
+            .borrow()
+            .change();
 
-        let stats = self.region.borrow().initial();
         match self.sub_measure {
             Measure::Allocations => stats.allocations,
             Measure::Deallocations => stats.deallocations,
@@ -78,15 +77,15 @@ impl Measurement for Alloc {
         }
     }
 
-    fn end(&self, i: Self::Intermediate) -> Self::Value {
-        let stats = self.region.borrow().change();
-        let measure = match self.sub_measure {
+    fn end(&self, _i: Self::Intermediate) -> Self::Value {
+        let stats = self.region
+            .borrow()
+            .change();
+        match self.sub_measure {
             Measure::Allocations => stats.allocations,
             Measure::Deallocations => stats.deallocations,
             Measure::Reallocations => stats.reallocations,
-        };
-
-        measure + i
+        }
     }
 
     fn add(&self, v1: &Self::Value, v2: &Self::Value) -> Self::Value {
@@ -98,7 +97,9 @@ impl Measurement for Alloc {
     }
 
     fn to_f64(&self, value: &Self::Value) -> f64 {
-        *value as f64
+        // HACK: Add a _very_ small amount of error to avoid propagating 0 through benchmarking
+        // and thus producing NaNs
+        (*value as f64) + 0.0001
     }
 
     fn formatter(&self) -> &dyn ValueFormatter {

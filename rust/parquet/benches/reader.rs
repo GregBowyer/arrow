@@ -35,23 +35,18 @@ fn record_reader_10k_collect<M: Measurement>(measure_name: &str, c: &mut Criteri
     let len = file.metadata().unwrap().len();
     let parquet_reader = SerializedFileReader::new(file).unwrap();
 
-    let bench_name = format!("reader_{}::10k-v2", measure_name).to_lowercase();
+    let bench_name = format!("reader_{}", measure_name).to_lowercase();
 
     let mut group = c.benchmark_group(&bench_name);
     group.throughput(Throughput::Bytes(len as u64));
-    group.bench_function("", |b| {
+    group.bench_function("10k-v2", |b| {
         b.iter(|| {
-            // TODO:
-            // We pass projection that excludes Int96 field, otherwise we get the following error:
-            //   Expected non-negative milliseconds when converting Int96, found -210866803200000
-            // Field I removed:
-            //   REQUIRED INT96 int96_field;
-            // See issue #201 for more information and follow-up.
             let projection = parse_message_type("
               message test {
                 REQUIRED BYTE_ARRAY binary_field;
                 REQUIRED INT32 int32_field;
                 REQUIRED INT64 int64_field;
+                REQUIRED INT96 int96_field;
                 REQUIRED BOOLEAN boolean_field;
                 REQUIRED FLOAT float_field;
                 REQUIRED DOUBLE double_field;
@@ -59,7 +54,8 @@ fn record_reader_10k_collect<M: Measurement>(measure_name: &str, c: &mut Criteri
               }
             ",).unwrap();
             let iter = parquet_reader.get_row_iter(Some(projection)).unwrap();
-            let _ = iter.collect::<Vec<_>>();
+            let x = iter.collect::<Vec<_>>();
+            black_box(x)
         })
     });
 }
@@ -70,11 +66,11 @@ fn record_reader_stock_simulated_collect<M: Measurement>(measure_name: &str, c: 
     let len = file.metadata().unwrap().len();
     let parquet_reader = SerializedFileReader::new(file).unwrap();
 
-    let bench_name = format!("reader_{}::stock-simulated", measure_name).to_lowercase();
+    let bench_name = format!("reader_{}", measure_name).to_lowercase();
 
     let mut group = c.benchmark_group(&bench_name);
     group.throughput(Throughput::Bytes(len as u64));
-    group.bench_function("", |b| {
+    group.bench_function("stock-simulated-collect", |b| {
         b.iter(|| {
             let iter = parquet_reader.get_row_iter(None).unwrap();
             let _ = iter.collect::<Vec<_>>();
@@ -94,11 +90,11 @@ fn record_reader_stock_simulated_column<M: Measurement>(measure_name: &str, c: &
     let num_row_groups = parquet_reader.num_row_groups();
     let batch_size = 256;
 
-    let bench_name = format!("reader_{}::stock-simulated", measure_name).to_lowercase();
+    let bench_name = format!("reader_{}", measure_name).to_lowercase();
 
     let mut group = c.benchmark_group(&bench_name);
     group.throughput(Throughput::Bytes(len as u64));
-    group.bench_function("", |b| {
+    group.bench_function("stock-simulated-column", |b| {
         b.iter(|| {
             let mut current_row_group = 0;
 
