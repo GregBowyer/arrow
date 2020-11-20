@@ -115,9 +115,10 @@ fn compress<M: Measurement>(measure_name: &str, c: &mut Criterion<M>) {
         let mut group = c.benchmark_group(bench_name);
 
         for (name, idx) in COL_TYPES.iter() {
+            let data = &COL_DATA[*idx];
+            group.throughput(Throughput::Bytes(data.len() as u64));
             group.bench_function(*name, |bench| {
                 let mut codec = create_codec(*algo).unwrap().unwrap();
-                let data = &COL_DATA[*idx];
                 let mut v = Vec::with_capacity(data.len());
 
                 bench.iter(|| {
@@ -134,10 +135,12 @@ fn decompress<M: Measurement>(measure_name: &str, c: &mut Criterion<M>) {
         let mut group = c.benchmark_group(bench_name);
 
         for (name, idx) in COL_TYPES.iter() {
+            let comp_len = COL_DATA[*idx].len();
+            group.throughput(Throughput::Bytes(comp_len as u64));
             group.bench_function(*name, |bench| {
                 let mut codec = create_codec(*algo).unwrap().unwrap();
                 let comp_data = &COMPRESSED_PAGES.get(algo).unwrap()[*idx];
-                let mut v = Vec::with_capacity(COL_DATA[*idx].len());
+                let mut v = Vec::with_capacity(comp_len);
 
                 bench.iter(|| {
                     let _ = codec.decompress(&comp_data, &mut v).unwrap();

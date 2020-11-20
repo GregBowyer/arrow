@@ -80,6 +80,7 @@ macro_rules! bench_group {
     (name = $name:ident; config = $config:expr; targets = $( $target:path ),+ $(,)*) => {
         pub fn $name(measure_name: &str, measure: impl $crate::Measurement) {
             let mut criterion: $crate::Criterion<_> = $config
+                .noise_threshold(0.03)
                 .with_measurement(measure)
                 .configure_from_args();
             $(
